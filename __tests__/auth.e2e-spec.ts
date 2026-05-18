@@ -1,8 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
+import { AllExceptionsFilter } from '../src/common/filters/http-exception.filter';
+import { ResponseInterceptor } from '../src/common/interceptors/response.interceptor';
 
 describe('Auth (e2e)', () => {
   let app: INestApplication;
@@ -31,6 +35,10 @@ describe('Auth (e2e)', () => {
     app.useGlobalPipes(
       new ValidationPipe({ whitelist: true, transform: true }),
     );
+    const reflector = app.get(Reflector);
+    app.useGlobalGuards(new JwtAuthGuard(reflector));
+    app.useGlobalFilters(new AllExceptionsFilter());
+    app.useGlobalInterceptors(new ResponseInterceptor());
 
     await app.init();
 
@@ -38,7 +46,6 @@ describe('Auth (e2e)', () => {
   });
 
   afterAll(async () => {
-    // Cleanup test user
     await prisma.user.deleteMany({ where: { email: testUser.email } });
     await app.close();
   });

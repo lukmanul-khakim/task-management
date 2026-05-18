@@ -149,17 +149,25 @@ export class AuthService {
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
   private async generateTokens(userId: string, email: string) {
+    // Add jitter to prevent token collision when called in rapid succession
+    const jitter = Math.random().toString(36).substring(2, 10);
     const payload: JwtPayload = { sub: userId, email };
 
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwt.signAsync(payload, {
-        secret: this.config.getOrThrow('JWT_ACCESS_SECRET'),
-        expiresIn: this.config.get('JWT_ACCESS_EXPIRES_IN', '15m'),
-      }),
-      this.jwt.signAsync(payload, {
-        secret: this.config.getOrThrow('JWT_REFRESH_SECRET'),
-        expiresIn: this.config.get('JWT_REFRESH_EXPIRES_IN', '7d'),
-      }),
+      this.jwt.signAsync(
+        { ...payload, jti: `a_${jitter}` },
+        {
+          secret: this.config.getOrThrow('JWT_ACCESS_SECRET'),
+          expiresIn: this.config.get('JWT_ACCESS_EXPIRES_IN', '15m'),
+        },
+      ),
+      this.jwt.signAsync(
+        { ...payload, jti: `r_${jitter}` },
+        {
+          secret: this.config.getOrThrow('JWT_REFRESH_SECRET'),
+          expiresIn: this.config.get('JWT_REFRESH_EXPIRES_IN', '7d'),
+        },
+      ),
     ]);
 
     // Persist refresh token for rotation validation
