@@ -84,7 +84,6 @@ describe('ProjectService', () => {
     });
 
     it('should throw ForbiddenException if user is MEMBER', async () => {
-      mockPrisma.project.findUnique.mockResolvedValue(null);
       mockPrisma.workspaceMember.findUnique.mockResolvedValue(mockRegularMember);
 
       await expect(service.create('my-team', 'user-1', dto)).rejects.toThrow(

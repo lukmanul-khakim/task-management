@@ -18,6 +18,9 @@ export class ProjectService {
   async create(workspaceSlug: string, userId: string, dto: CreateProjectDto) {
     const workspace = await this.getWorkspaceOrThrow(workspaceSlug);
 
+    // Only OWNER or ADMIN can create projects
+    await this.assertAdminOrOwner(workspaceSlug, userId);
+
     // Identifier must be unique within workspace
     const identifierTaken = await this.prisma.project.findUnique({
       where: {
