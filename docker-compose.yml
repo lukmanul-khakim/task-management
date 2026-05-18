@@ -1,0 +1,88 @@
+name: task-management
+
+services:
+  # ─── PostgreSQL ─────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: tm-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tmuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tmpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-taskmanagement}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tmuser} -d ${POSTGRES_DB:-taskmanagement}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ─── Redis ──────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: tm-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-tmredis} --save 60 1
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-tmredis}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── App ────────────────────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder          # use builder stage for dev (has devDeps + hot reload)
+    container_name: tm-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://${POSTGRES_USER:-tmuser}:${POSTGRES_PASSWORD:-tmpassword}@postgres:5432/${POSTGRES_DB:-taskmanagement}?schema=public
+      REDIS_URL: redis://:${REDIS_PASSWORD:-tmredis}@redis:6379
+    ports:
+      - "3002:3000"
+    volumes:
+      - .:/app                 # hot reload in dev
+      - /app/node_modules      # keep container's node_modules
+    command: npm run start:dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ─── Prisma Studio (optional, dev-only) ─────────────────────────────────────
+  prisma-studio:
+    image: node:20-alpine
+    container_name: tm-prisma-studio
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npx prisma studio --port 5555 --hostname 0.0.0.0
+    ports:
+      - "5555:5555"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - studio                 # only starts with: docker compose --profile studio up
+
+volumes:
+  postgres_data:
+  redis_data:
+

@@ -1,0 +1,243 @@
+// ─── Generator & Datasource ───────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  }
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum ProjectStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum TicketStatus {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+  CANCELLED
+}
+
+enum TicketPriority {
+  NO_PRIORITY
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ActivityAction {
+  CREATED
+  UPDATED
+  STATUS_CHANGED
+  PRIORITY_CHANGED
+  ASSIGNED
+  UNASSIGNED
+  DUE_DATE_SET
+  DUE_DATE_REMOVED
+  COMMENTED
+  ARCHIVED
+}
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String
+  avatarUrl      String?
+  hashedPassword String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  workspaceMembers WorkspaceMember[]
+  ownedWorkspaces  Workspace[]       @relation("WorkspaceOwner")
+  assignedTickets  Ticket[]          @relation("TicketAssignee")
+  createdTickets   Ticket[]          @relation("TicketCreator")
+  activities       ActivityLog[]
+  refreshTokens    RefreshToken[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+// ─── Workspace ────────────────────────────────────────────────────────────────
+
+model Workspace {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique   // e.g. "my-team" → /workspaces/my-team
+  description String?
+  logoUrl     String?
+  ownerId     String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  owner    User              @relation("WorkspaceOwner", fields: [ownerId], references: [id])
+  members  WorkspaceMember[]
+  projects Project[]
+  invites  WorkspaceInvite[]
+
+  @@index([slug])
+  @@index([ownerId])
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String        @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        WorkspaceRole @default(MEMBER)
+  joinedAt    DateTime      @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([workspaceId])
+  @@index([userId])
+  @@map("workspace_members")
+}
+
+model WorkspaceInvite {
+  id          String   @id @default(cuid())
+  workspaceId String
+  email       String
+  token       String   @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([email])
+  @@map("workspace_invites")
+}
+
+// ─── Project ──────────────────────────────────────────────────────────────────
+
+model Project {
+  id          String        @id @default(cuid())
+  workspaceId String
+  name        String
+  description String?
+  status      ProjectStatus @default(ACTIVE)
+  identifier  String        // short prefix for tickets e.g. "ENG", "DEV"
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archivedAt DateTime?
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tickets   Ticket[]
+
+  @@unique([workspaceId, identifier])
+  @@index([workspaceId])
+  @@map("projects")
+}
+
+// ─── Ticket ───────────────────────────────────────────────────────────────────
+
+model Ticket {
+  id         String         @id @default(cuid())
+  projectId  String
+  number     Int            // auto-incremented per project, e.g. ENG-42
+  title      String
+  description String?
+  status     TicketStatus   @default(BACKLOG)
+  priority   TicketPriority @default(NO_PRIORITY)
+  dueDate    DateTime?
+  assigneeId String?
+  creatorId  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  project    Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee   User?         @relation("TicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  creator    User          @relation("TicketCreator", fields: [creatorId], references: [id])
+  activities ActivityLog[]
+  labels     TicketLabel[]
+
+  @@unique([projectId, number])
+  @@index([projectId])
+  @@index([assigneeId])
+  @@index([status])
+  @@index([priority])
+  @@map("tickets")
+}
+
+model Label {
+  id    String @id @default(cuid())
+  name  String
+  color String // hex e.g. "#FF5630"
+
+  tickets TicketLabel[]
+
+  @@map("labels")
+}
+
+// Join table — Ticket ↔ Label
+model TicketLabel {
+  ticketId String
+  labelId  String
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  label  Label  @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([ticketId, labelId])
+  @@map("ticket_labels")
+}
+
+// ─── Activity Log ─────────────────────────────────────────────────────────────
+
+model ActivityLog {
+  id       String         @id @default(cuid())
+  ticketId String
+  userId   String
+  action   ActivityAction
+  // JSON blob: { field, from, to } — flexible for different action types
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([ticketId])
+  @@index([userId])
+  @@map("activity_logs")
+}
+

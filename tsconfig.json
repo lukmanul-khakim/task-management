@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2021",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "incremental": true,
+    "skipLibCheck": true,
+    "types": ["jest", "node"],
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": false,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "@auth/*": ["src/auth/*"],
+      "@workspace/*": ["src/workspace/*"],
+      "@project/*": ["src/project/*"],
+      "@ticket/*": ["src/ticket/*"],
+      "@common/*": ["src/common/*"],
+      "@prisma-service/*": ["src/prisma/*"]
+    }
+  }
+}
+

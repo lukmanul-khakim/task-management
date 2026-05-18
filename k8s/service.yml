@@ -1,0 +1,45 @@
+# ─── PostgreSQL Service ───────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  namespace: task-management
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+  type: ClusterIP              # internal only — not exposed outside cluster
+
+---
+# ─── Redis Service ────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: task-management
+spec:
+  selector:
+    app: redis
+  ports:
+    - port: 6379
+      targetPort: 6379
+  type: ClusterIP              # internal only
+
+---
+# ─── App Service ──────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: task-management-service
+  namespace: task-management
+spec:
+  selector:
+    app: task-management
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+  type: NodePort               # exposes on VPS port — use LoadBalancer for cloud
+

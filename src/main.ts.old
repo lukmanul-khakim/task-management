@@ -1,0 +1,73 @@
+import { NestFactory } from '@nestjs/core';
+import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  // ─── Global prefix ──────────────────────────────────────────────────────────
+  app.setGlobalPrefix('api');
+
+  // ─── API versioning ─────────────────────────────────────────────────────────
+  app.enableVersioning({
+    type: VersioningType.URI,    // routes: /api/v1/auth/login
+    defaultVersion: '1',
+  });
+
+  // ─── Validation ─────────────────────────────────────────────────────────────
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,           // strip properties not in DTO
+      forbidNonWhitelisted: true, // throw if extra properties sent
+      transform: true,           // auto-transform to DTO types
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    }),
+  );
+
+  // ─── CORS ───────────────────────────────────────────────────────────────────
+  const allowedOrigins = process.env.CORS_ORIGIN?.split(',') ?? [];
+  app.enableCors({
+    origin: allowedOrigins.length ? allowedOrigins : false,
+    credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  });
+
+  // ─── Swagger ────────────────────────────────────────────────────────────────
+  if (process.env.SWAGGER_ENABLED !== 'false') {
+    const config = new DocumentBuilder()
+      .setTitle('Task Management API')
+      .setDescription(
+        'REST API for Task Management System — Auth, Workspace, Project, Ticket',
+      )
+      .setVersion('1.0')
+      .addBearerAuth(
+        { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+        'access-token',
+      )
+      .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document, {
+      swaggerOptions: {
+        persistAuthorization: true,  // keep token between page refreshes
+      },
+    });
+
+    console.log(
+      `📖 Swagger docs: http://localhost:${process.env.PORT ?? 3000}/api/docs`,
+    );
+  }
+
+  // ─── Health endpoint (before any guard) ────────────────────────────────────
+  // Handled by HealthModule, but log the URL for clarity
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port);
+
+  console.log(`🚀 App running: http://localhost:${port}/api/v1`);
+}
+
+bootstrap();
+
