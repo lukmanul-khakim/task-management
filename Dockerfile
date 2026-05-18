@@ -33,23 +33,26 @@ WORKDIR /app
 # Create non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# Copy production deps only
+# Copy production deps only (no devDeps)
 COPY package*.json ./
-COPY prisma ./prisma/
+RUN npm ci --frozen-lockfile --omit=dev && npm cache clean --force
 
-RUN npm ci --frozen-lockfile --omit=dev && \
-    npx prisma generate && \
-    npm cache clean --force
-
-# Copy compiled output
+# Copy compiled output from builder
 COPY --from=builder /app/dist ./dist
+
+# Copy generated Prisma client from builder (avoids needing prisma CLI in prod)
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
+
+# Copy prisma schema (needed at runtime for migrations)
+COPY prisma ./prisma/
 
 # Own everything by appuser
 RUN chown -R appuser:appgroup /app
 
 USER appuser
 
-EXPOSE 3002
+EXPOSE 3000
 
 # HEALTHCHECK so Docker/k8s can monitor the container
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
