@@ -41,8 +41,10 @@ RUN npm ci --frozen-lockfile --omit=dev && npm cache clean --force
 COPY --from=builder /app/dist ./dist
 
 # Copy generated Prisma client from builder (avoids needing prisma CLI in prod)
+//COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+//COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 # Copy prisma schema (needed at runtime for migrations)
 COPY prisma ./prisma/
