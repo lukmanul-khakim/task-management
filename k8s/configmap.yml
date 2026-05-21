@@ -13,4 +13,5 @@ data:
   CORS_ORIGIN: "https://yourdomain.com"
   JWT_ACCESS_EXPIRES_IN: "15m"
   JWT_REFRESH_EXPIRES_IN: "7d"
-
+  init.sql: |
+    ALTER USER tmuser PASSWORD 'tmpassword';
