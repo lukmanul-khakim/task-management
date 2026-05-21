@@ -183,7 +183,7 @@ jobs:
       - name: Connect Tailscale
         uses: tailscale/github-action@v2
         with:
-          authkey: ${{ tskey-auth-k9915yWxiN11CNTRL-ewH5szyysH6eszYmNiRdJ6jP4jX72cpo2 }}
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
 
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
