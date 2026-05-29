@@ -53,6 +53,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --frozen-lockfile
 
+      - name: Lint
+        run: npm run lint
+
       - name: Generate Prisma client
         run: npx prisma generate
         env:
@@ -217,4 +220,20 @@ jobs:
       - name: Verify deployment
         run: |
           kubectl get pods -n task-management
+
+      - name: Smoke test — health endpoint
+        run: |
+          NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
+          NODE_PORT=$(kubectl get svc task-management-service -n task-management -o jsonpath='{.spec.ports[0].nodePort}')
+          for i in $(seq 1 10); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://${NODE_IP}:${NODE_PORT}/api/v1/health")
+            if [ "$STATUS" = "200" ]; then
+              echo "Health check passed (HTTP $STATUS)"
+              exit 0
+            fi
+            echo "Attempt $i: got HTTP $STATUS, retrying..."
+            sleep 5
+          done
+          echo "Health check failed after 10 attempts"
+          exit 1
 

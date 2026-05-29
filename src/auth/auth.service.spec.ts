@@ -146,7 +146,10 @@ describe('AuthService', () => {
 
   describe('refresh', () => {
     it('should return new tokens when refresh token is valid', async () => {
-      mockJwt.verify.mockReturnValue({ sub: 'user-id-1', email: 'john@example.com' });
+      mockJwt.verify.mockReturnValue({
+        sub: 'user-id-1',
+        email: 'john@example.com',
+      });
       mockPrisma.refreshToken.findUnique.mockResolvedValue({
         token: 'valid-refresh-token',
         expiresAt: new Date(Date.now() + 86400000), // 1 day ahead
@@ -174,7 +177,10 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException and purge tokens on reuse detection', async () => {
-      mockJwt.verify.mockReturnValue({ sub: 'user-id-1', email: 'john@example.com' });
+      mockJwt.verify.mockReturnValue({
+        sub: 'user-id-1',
+        email: 'john@example.com',
+      });
       mockPrisma.refreshToken.findUnique.mockResolvedValue(null); // token not in DB
       mockPrisma.refreshToken.deleteMany.mockResolvedValue({ count: 1 });
 
@@ -187,4 +193,3 @@ describe('AuthService', () => {
     });
   });
 });
-

@@ -34,4 +34,3 @@ export class QueryTicketDto {
   @Max(100)
   limit?: number = 20;
 }
-

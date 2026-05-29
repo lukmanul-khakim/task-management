@@ -6,12 +6,16 @@ import {
 } from '@nestjs/common';
 import { ProjectStatus, WorkspaceRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService, CacheKeys } from '../redis/redis.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 
 @Injectable()
 export class ProjectService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private redis: RedisService,
+  ) {}
 
   // ─── Create ───────────────────────────────────────────────────────────────
 
@@ -148,11 +152,18 @@ export class ProjectService {
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
   private async getWorkspaceOrThrow(slug: string) {
+    const cacheKey = CacheKeys.workspaceId(slug);
+    const cachedId = await this.redis.get<string>(cacheKey);
+
+    if (cachedId) return { id: cachedId, slug };
+
     const workspace = await this.prisma.workspace.findUnique({
       where: { slug },
       select: { id: true, slug: true },
     });
     if (!workspace) throw new NotFoundException('Workspace not found');
+
+    await this.redis.set(cacheKey, workspace.id);
     return workspace;
   }
 
@@ -173,7 +184,9 @@ export class ProjectService {
       (member.role !== WorkspaceRole.OWNER &&
         member.role !== WorkspaceRole.ADMIN)
     ) {
-      throw new ForbiddenException('Only OWNER or ADMIN can perform this action');
+      throw new ForbiddenException(
+        'Only OWNER or ADMIN can perform this action',
+      );
     }
   }
 
@@ -198,4 +211,3 @@ const projectSelect = {
   archivedAt: true,
   workspace: { select: { id: true, name: true, slug: true } },
 } as const;
-

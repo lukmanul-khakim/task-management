@@ -38,6 +38,7 @@ const config: Config = {
     '^@ticket/(.*)$': '<rootDir>/src/ticket/$1',
     '^@common/(.*)$': '<rootDir>/src/common/$1',
     '^@prisma-service/(.*)$': '<rootDir>/src/prisma/$1',
+    '^@redis/(.*)$': '<rootDir>/src/redis/$1',
   },
   // Separate config for e2e tests
   projects: [
@@ -52,6 +53,7 @@ const config: Config = {
         '^@ticket/(.*)$': '<rootDir>/src/ticket/$1',
         '^@common/(.*)$': '<rootDir>/src/common/$1',
         '^@prisma-service/(.*)$': '<rootDir>/src/prisma/$1',
+        '^@redis/(.*)$': '<rootDir>/src/redis/$1',
       },
     },
     {
@@ -65,6 +67,7 @@ const config: Config = {
         '^@ticket/(.*)$': '<rootDir>/src/ticket/$1',
         '^@common/(.*)$': '<rootDir>/src/common/$1',
         '^@prisma-service/(.*)$': '<rootDir>/src/prisma/$1',
+        '^@redis/(.*)$': '<rootDir>/src/redis/$1',
       },
     },
   ],

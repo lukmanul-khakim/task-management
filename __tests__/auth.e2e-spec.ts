@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
+import {
+  INestApplication,
+  ValidationPipe,
+  VersioningType,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
@@ -131,9 +135,7 @@ describe('Auth (e2e)', () => {
     });
 
     it('should return 401 when no token provided', async () => {
-      await request(app.getHttpServer())
-        .get('/api/v1/auth/me')
-        .expect(401);
+      await request(app.getHttpServer()).get('/api/v1/auth/me').expect(401);
     });
 
     it('should return 401 for invalid token', async () => {
@@ -201,4 +203,3 @@ describe('Auth (e2e)', () => {
     });
   });
 });
-

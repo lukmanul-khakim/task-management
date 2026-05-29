@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
+import {
+  INestApplication,
+  ValidationPipe,
+  VersioningType,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import request from 'supertest';
 import { TicketStatus, TicketPriority } from '@prisma/client';
@@ -33,7 +37,9 @@ describe('Tickets (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
     app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     const reflector = app.get(Reflector);
     app.useGlobalGuards(new JwtAuthGuard(reflector));
     app.useGlobalFilters(new AllExceptionsFilter());
@@ -230,4 +236,3 @@ describe('Tickets (e2e)', () => {
     });
   });
 });
-

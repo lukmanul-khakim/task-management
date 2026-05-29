@@ -3,6 +3,7 @@ import { NotFoundException } from '@nestjs/common';
 import { ActivityAction, TicketPriority, TicketStatus } from '@prisma/client';
 import { TicketService } from './ticket.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,12 @@ const mockPrisma = {
   },
 };
 
+const mockRedis = {
+  get: jest.fn().mockResolvedValue(null),
+  set: jest.fn().mockResolvedValue(undefined),
+  del: jest.fn().mockResolvedValue(undefined),
+};
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('TicketService', () => {
@@ -45,6 +52,7 @@ describe('TicketService', () => {
       providers: [
         TicketService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: RedisService, useValue: mockRedis },
       ],
     }).compile();
 
@@ -264,4 +272,3 @@ describe('TicketService', () => {
     });
   });
 });
-

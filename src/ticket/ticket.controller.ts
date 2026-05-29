@@ -110,4 +110,3 @@ export class TicketController {
     return this.ticketService.getActivity(slug, identifier, number);
   }
 }
-

@@ -1,17 +1,17 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { ActivityAction, Prisma, TicketStatus } from '@prisma/client';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { ActivityAction, Prisma, Ticket } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService, CacheKeys } from '../redis/redis.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { QueryTicketDto } from './dto/query-ticket.dto';
 
 @Injectable()
 export class TicketService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private redis: RedisService,
+  ) {}
 
   // ─── Create ───────────────────────────────────────────────────────────────
 
@@ -21,7 +21,10 @@ export class TicketService {
     userId: string,
     dto: CreateTicketDto,
   ) {
-    const project = await this.getProjectOrThrow(workspaceSlug, projectIdentifier);
+    const project = await this.getProjectOrThrow(
+      workspaceSlug,
+      projectIdentifier,
+    );
 
     // Auto-increment ticket number per project
     const lastTicket = await this.prisma.ticket.findFirst({
@@ -61,7 +64,10 @@ export class TicketService {
     projectIdentifier: string,
     query: QueryTicketDto,
   ) {
-    const project = await this.getProjectOrThrow(workspaceSlug, projectIdentifier);
+    const project = await this.getProjectOrThrow(
+      workspaceSlug,
+      projectIdentifier,
+    );
     const { status, priority, assigneeId, page = 1, limit = 20 } = query;
 
     const where: Prisma.TicketWhereInput = {
@@ -100,7 +106,10 @@ export class TicketService {
     projectIdentifier: string,
     ticketNumber: number,
   ) {
-    const project = await this.getProjectOrThrow(workspaceSlug, projectIdentifier);
+    const project = await this.getProjectOrThrow(
+      workspaceSlug,
+      projectIdentifier,
+    );
 
     const ticket = await this.prisma.ticket.findUnique({
       where: {
@@ -135,10 +144,15 @@ export class TicketService {
     userId: string,
     dto: UpdateTicketDto,
   ) {
-    const project = await this.getProjectOrThrow(workspaceSlug, projectIdentifier);
+    const project = await this.getProjectOrThrow(
+      workspaceSlug,
+      projectIdentifier,
+    );
 
     const existing = await this.prisma.ticket.findUnique({
-      where: { projectId_number: { projectId: project.id, number: ticketNumber } },
+      where: {
+        projectId_number: { projectId: project.id, number: ticketNumber },
+      },
     });
     if (!existing) throw new NotFoundException('Ticket not found');
 
@@ -170,12 +184,17 @@ export class TicketService {
     workspaceSlug: string,
     projectIdentifier: string,
     ticketNumber: number,
-    userId: string,
+    _userId: string,
   ) {
-    const project = await this.getProjectOrThrow(workspaceSlug, projectIdentifier);
+    const project = await this.getProjectOrThrow(
+      workspaceSlug,
+      projectIdentifier,
+    );
 
     const ticket = await this.prisma.ticket.findUnique({
-      where: { projectId_number: { projectId: project.id, number: ticketNumber } },
+      where: {
+        projectId_number: { projectId: project.id, number: ticketNumber },
+      },
       select: { id: true, creatorId: true },
     });
     if (!ticket) throw new NotFoundException('Ticket not found');
@@ -191,10 +210,15 @@ export class TicketService {
     projectIdentifier: string,
     ticketNumber: number,
   ) {
-    const project = await this.getProjectOrThrow(workspaceSlug, projectIdentifier);
+    const project = await this.getProjectOrThrow(
+      workspaceSlug,
+      projectIdentifier,
+    );
 
     const ticket = await this.prisma.ticket.findUnique({
-      where: { projectId_number: { projectId: project.id, number: ticketNumber } },
+      where: {
+        projectId_number: { projectId: project.id, number: ticketNumber },
+      },
       select: {
         activities: {
           select: {
@@ -216,19 +240,24 @@ export class TicketService {
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
   private async getProjectOrThrow(workspaceSlug: string, identifier: string) {
-    const workspace = await this.prisma.workspace.findUnique({
-      where: { slug: workspaceSlug },
-      select: { id: true },
-    });
-    if (!workspace) throw new NotFoundException('Workspace not found');
+    const cacheKey = CacheKeys.workspaceId(workspaceSlug);
+    const cachedId = await this.redis.get<string>(cacheKey);
+
+    let workspaceId: string;
+    if (cachedId) {
+      workspaceId = cachedId;
+    } else {
+      const workspace = await this.prisma.workspace.findUnique({
+        where: { slug: workspaceSlug },
+        select: { id: true },
+      });
+      if (!workspace) throw new NotFoundException('Workspace not found');
+      await this.redis.set(cacheKey, workspace.id);
+      workspaceId = workspace.id;
+    }
 
     const project = await this.prisma.project.findUnique({
-      where: {
-        workspaceId_identifier: {
-          workspaceId: workspace.id,
-          identifier,
-        },
-      },
+      where: { workspaceId_identifier: { workspaceId, identifier } },
       select: { id: true, identifier: true },
     });
     if (!project) throw new NotFoundException('Project not found');
@@ -236,7 +265,7 @@ export class TicketService {
   }
 
   private buildActivityLogs(
-    existing: any,
+    existing: Ticket,
     dto: UpdateTicketDto,
     userId: string,
   ) {
@@ -258,7 +287,10 @@ export class TicketService {
       });
     }
 
-    if (dto.assigneeId !== undefined && dto.assigneeId !== existing.assigneeId) {
+    if (
+      dto.assigneeId !== undefined &&
+      dto.assigneeId !== existing.assigneeId
+    ) {
       if (dto.assigneeId === null) {
         logs.push({
           user: { connect: { id: userId } },
@@ -321,4 +353,3 @@ const ticketSelect = {
   },
   _count: { select: { activities: true } },
 } as const;
-

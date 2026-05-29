@@ -1,8 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { WorkspaceRole } from '@prisma/client';
 import { WorkspaceService } from './workspace.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -21,7 +26,12 @@ const mockWorkspace = {
 const mockMember = {
   role: WorkspaceRole.OWNER,
   joinedAt: new Date(),
-  user: { id: 'user-1', name: 'John', email: 'john@example.com', avatarUrl: null },
+  user: {
+    id: 'user-1',
+    name: 'John',
+    email: 'john@example.com',
+    avatarUrl: null,
+  },
 };
 
 const mockPrisma = {
@@ -43,6 +53,12 @@ const mockPrisma = {
   },
 };
 
+const mockRedis = {
+  get: jest.fn().mockResolvedValue(null),
+  set: jest.fn().mockResolvedValue(undefined),
+  del: jest.fn().mockResolvedValue(undefined),
+};
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('WorkspaceService', () => {
@@ -53,6 +69,7 @@ describe('WorkspaceService', () => {
       providers: [
         WorkspaceService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: RedisService, useValue: mockRedis },
       ],
     }).compile();
 
@@ -314,4 +331,3 @@ describe('WorkspaceService', () => {
     });
   });
 });
-

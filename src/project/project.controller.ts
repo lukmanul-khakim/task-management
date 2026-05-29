@@ -54,10 +54,7 @@ export class ProjectController {
     type: Boolean,
     description: 'Include archived projects',
   })
-  findAll(
-    @Param('slug') slug: string,
-    @Query('archived') archived?: boolean,
-  ) {
+  findAll(@Param('slug') slug: string, @Query('archived') archived?: boolean) {
     return this.projectService.findAll(slug, archived);
   }
 
@@ -129,4 +126,3 @@ export class ProjectController {
     return this.projectService.remove(slug, identifier, userId);
   }
 }
-

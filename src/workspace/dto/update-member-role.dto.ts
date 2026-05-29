@@ -7,4 +7,3 @@ export class UpdateMemberRoleDto {
   @IsEnum(WorkspaceRole)
   role: WorkspaceRole;
 }
-

@@ -135,7 +135,7 @@ spec:
       containers:
         - name: app
           image: lukmankhakim09/task-management:latest
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
           envFrom:

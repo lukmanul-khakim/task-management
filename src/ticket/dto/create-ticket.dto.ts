@@ -28,7 +28,10 @@ export class CreateTicketDto {
   @IsEnum(TicketStatus)
   status?: TicketStatus;
 
-  @ApiPropertyOptional({ enum: TicketPriority, default: TicketPriority.NO_PRIORITY })
+  @ApiPropertyOptional({
+    enum: TicketPriority,
+    default: TicketPriority.NO_PRIORITY,
+  })
   @IsOptional()
   @IsEnum(TicketPriority)
   priority?: TicketPriority;
@@ -43,4 +46,3 @@ export class CreateTicketDto {
   @IsUUID()
   assigneeId?: string;
 }
-

@@ -28,4 +28,3 @@ describe('PrismaService', () => {
     process.env.NODE_ENV = original;
   });
 });
-

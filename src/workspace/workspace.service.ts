@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { WorkspaceRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService, CacheKeys } from '../redis/redis.service';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
@@ -13,7 +14,10 @@ import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 
 @Injectable()
 export class WorkspaceService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private redis: RedisService,
+  ) {}
 
   // ─── Create ───────────────────────────────────────────────────────────────
 
@@ -60,7 +64,9 @@ export class WorkspaceService {
           select: {
             role: true,
             joinedAt: true,
-            user: { select: { id: true, name: true, email: true, avatarUrl: true } },
+            user: {
+              select: { id: true, name: true, email: true, avatarUrl: true },
+            },
           },
         },
       },
@@ -73,11 +79,13 @@ export class WorkspaceService {
 
   async update(slug: string, dto: UpdateWorkspaceDto) {
     await this.findOne(slug);
-    return this.prisma.workspace.update({
+    const result = await this.prisma.workspace.update({
       where: { slug },
       data: dto,
       select: workspaceSelect,
     });
+    await this.redis.del(CacheKeys.workspaceId(slug));
+    return result;
   }
 
   // ─── Delete ───────────────────────────────────────────────────────────────
@@ -92,6 +100,7 @@ export class WorkspaceService {
       throw new ForbiddenException('Only the owner can delete this workspace');
     }
     await this.prisma.workspace.delete({ where: { slug } });
+    await this.redis.del(CacheKeys.workspaceId(slug));
     return { message: 'Workspace deleted' };
   }
 
@@ -105,7 +114,9 @@ export class WorkspaceService {
           select: {
             role: true,
             joinedAt: true,
-            user: { select: { id: true, name: true, email: true, avatarUrl: true } },
+            user: {
+              select: { id: true, name: true, email: true, avatarUrl: true },
+            },
           },
           orderBy: { joinedAt: 'asc' },
         },
@@ -130,12 +141,16 @@ export class WorkspaceService {
 
     if (!user) {
       // In production: send email invite. For now, return clear message.
-      return { message: `Invite sent to ${dto.email} (user not yet registered)` };
+      return {
+        message: `Invite sent to ${dto.email} (user not yet registered)`,
+      };
     }
 
     // Check already a member
     const existing = await this.prisma.workspaceMember.findUnique({
-      where: { workspaceId_userId: { workspaceId: workspace.id, userId: user.id } },
+      where: {
+        workspaceId_userId: { workspaceId: workspace.id, userId: user.id },
+      },
     });
     if (existing) throw new ConflictException('User is already a member');
 
@@ -177,7 +192,9 @@ export class WorkspaceService {
     }
 
     return this.prisma.workspaceMember.update({
-      where: { workspaceId_userId: { workspaceId: workspace.id, userId: memberId } },
+      where: {
+        workspaceId_userId: { workspaceId: workspace.id, userId: memberId },
+      },
       data: { role: dto.role },
       select: {
         role: true,
@@ -200,7 +217,12 @@ export class WorkspaceService {
     // Members can remove themselves, admins/owners can remove others
     if (requesterId !== memberId) {
       const requester = await this.prisma.workspaceMember.findUnique({
-        where: { workspaceId_userId: { workspaceId: workspace.id, userId: requesterId } },
+        where: {
+          workspaceId_userId: {
+            workspaceId: workspace.id,
+            userId: requesterId,
+          },
+        },
         select: { role: true },
       });
       if (
@@ -213,7 +235,9 @@ export class WorkspaceService {
     }
 
     await this.prisma.workspaceMember.delete({
-      where: { workspaceId_userId: { workspaceId: workspace.id, userId: memberId } },
+      where: {
+        workspaceId_userId: { workspaceId: workspace.id, userId: memberId },
+      },
     });
 
     return { message: 'Member removed' };
@@ -233,4 +257,3 @@ const workspaceSelect = {
   updatedAt: true,
   _count: { select: { members: true, projects: true } },
 } as const;
-

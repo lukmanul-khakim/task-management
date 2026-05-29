@@ -12,4 +12,3 @@ export class InviteMemberDto {
   @IsEnum(WorkspaceRole)
   role?: WorkspaceRole = WorkspaceRole.MEMBER;
 }
-

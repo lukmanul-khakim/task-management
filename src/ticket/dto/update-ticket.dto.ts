@@ -6,10 +6,7 @@ import {
   MaxLength,
   IsOptional,
   IsEnum,
-  IsDateString,
-  IsUUID,
-} 
-from 'class-validator';
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class UpdateTicketDto {
@@ -42,7 +39,7 @@ export class UpdateTicketDto {
     description: 'Pass null to remove due date',
   })
   @IsOptional()
-  @Transform(({ value }) => (value === null ? null : value))
+  @Transform(({ value }: { value: unknown }) => (value === null ? null : value))
   dueDate?: string | null;
 
   @ApiPropertyOptional({
@@ -50,7 +47,6 @@ export class UpdateTicketDto {
     description: 'User ID to assign, or null to unassign',
   })
   @IsOptional()
-  @Transform(({ value }) => (value === null ? null : value))
+  @Transform(({ value }: { value: unknown }) => (value === null ? null : value))
   assigneeId?: string | null;
 }
-

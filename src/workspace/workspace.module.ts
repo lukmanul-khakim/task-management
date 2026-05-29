@@ -9,4 +9,3 @@ import { WorkspaceMemberGuard } from './guards/workspace-member.guard';
   exports: [WorkspaceService, WorkspaceMemberGuard],
 })
 export class WorkspaceModule {}
-

@@ -15,4 +15,3 @@ export class UpdateProjectDto {
   @MaxLength(500)
   description?: string;
 }
-

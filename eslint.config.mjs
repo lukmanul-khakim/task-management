@@ -29,7 +29,37 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
+      // Allow _-prefixed variables to be intentionally unused (destructuring patterns)
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
       "prettier/prettier": ["error", { endOfLine: "auto" }],
+    },
+  },
+  // NestJS infrastructure files deal with Express Request objects typed as any —
+  // unsafe-access rules are impractical without wrapping every request access
+  {
+    files: [
+      'src/common/**/*.ts',
+      'src/**/guards/*.guard.ts',
+      'src/**/strategies/*.strategy.ts',
+    ],
+    rules: {
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+    },
+  },
+  // Test files access any-typed Supertest responses and jest mocks —
+  // unsafe-access rules are impractical without full generic wrappers
+  {
+    files: ['src/**/*.spec.ts', '__tests__/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
     },
   },
 );

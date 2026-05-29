@@ -10,4 +10,3 @@ import { WorkspaceModule } from '../workspace/workspace.module';
   exports: [TicketService],
 })
 export class TicketModule {}
-

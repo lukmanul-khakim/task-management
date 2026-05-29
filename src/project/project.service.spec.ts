@@ -7,6 +7,7 @@ import {
 import { ProjectStatus, WorkspaceRole } from '@prisma/client';
 import { ProjectService } from './project.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -40,6 +41,12 @@ const mockPrisma = {
   workspaceMember: { findUnique: jest.fn() },
 };
 
+const mockRedis = {
+  get: jest.fn().mockResolvedValue(null),
+  set: jest.fn().mockResolvedValue(undefined),
+  del: jest.fn().mockResolvedValue(undefined),
+};
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('ProjectService', () => {
@@ -50,6 +57,7 @@ describe('ProjectService', () => {
       providers: [
         ProjectService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: RedisService, useValue: mockRedis },
       ],
     }).compile();
 
@@ -84,7 +92,9 @@ describe('ProjectService', () => {
     });
 
     it('should throw ForbiddenException if user is MEMBER', async () => {
-      mockPrisma.workspaceMember.findUnique.mockResolvedValue(mockRegularMember);
+      mockPrisma.workspaceMember.findUnique.mockResolvedValue(
+        mockRegularMember,
+      );
 
       await expect(service.create('my-team', 'user-1', dto)).rejects.toThrow(
         ForbiddenException,
@@ -240,10 +250,9 @@ describe('ProjectService', () => {
     it('should throw ForbiddenException if user is ADMIN', async () => {
       mockPrisma.workspaceMember.findUnique.mockResolvedValue(mockAdminMember);
 
-      await expect(
-        service.remove('my-team', 'ENG', 'user-1'),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.remove('my-team', 'ENG', 'user-1')).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 });
-

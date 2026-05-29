@@ -68,7 +68,10 @@ export class AuthService {
 
     if (!user) throw new UnauthorizedException('Invalid credentials');
 
-    const passwordMatch = await bcrypt.compare(dto.password, user.hashedPassword);
+    const passwordMatch = await bcrypt.compare(
+      dto.password,
+      user.hashedPassword,
+    );
     if (!passwordMatch) throw new UnauthorizedException('Invalid credentials');
 
     const tokens = await this.generateTokens(user.id, user.email);
@@ -181,4 +184,3 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 }
-

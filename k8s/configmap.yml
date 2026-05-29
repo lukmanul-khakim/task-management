@@ -9,7 +9,7 @@ data:
   POSTGRES_DB: "taskmanagement"
   REDIS_HOST: "redis-service"
   REDIS_PORT: "6379"
-  SWAGGER_ENABLED: "false"          # disable Swagger in production
+  SWAGGER_ENABLED: "true"
   CORS_ORIGIN: "https://yourdomain.com"
   JWT_ACCESS_EXPIRES_IN: "15m"
   JWT_REFRESH_EXPIRES_IN: "7d"

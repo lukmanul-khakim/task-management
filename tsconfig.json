@@ -26,7 +26,8 @@
       "@project/*": ["src/project/*"],
       "@ticket/*": ["src/ticket/*"],
       "@common/*": ["src/common/*"],
-      "@prisma-service/*": ["src/prisma/*"]
+      "@prisma-service/*": ["src/prisma/*"],
+      "@redis/*": ["src/redis/*"]
     }
   }
 }

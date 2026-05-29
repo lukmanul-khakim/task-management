@@ -15,4 +15,3 @@ export class UpdateWorkspaceDto {
   @MaxLength(200)
   description?: string;
 }
-
