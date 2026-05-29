@@ -17,6 +17,7 @@ const config: Config = {
     '!src/**/*.filter.ts',
     '!src/**/*.guard.ts',        // guards covered by e2e
     '!src/**/*.strategy.ts',     // strategies covered by e2e
+    '!src/redis/redis.service.ts', // ioredis wrapper — covered by e2e
     '!src/main.ts',
     '!**/*.d.ts',
   ],
