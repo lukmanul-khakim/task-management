@@ -215,7 +215,7 @@ jobs:
         run: |
           kubectl rollout status deployment/task-management \
             -n task-management \
-            --timeout=120s
+            --timeout=300s
 
       - name: Verify deployment
         run: |
