@@ -53,13 +53,13 @@ jobs:
       - name: Install dependencies
         run: npm ci --frozen-lockfile
 
-      - name: Lint
-        run: npm run lint
-
       - name: Generate Prisma client
         run: npx prisma generate
         env:
           DATABASE_URL: postgresql://tmuser:tmpassword@localhost:5432/taskmanagement_test?schema=public
+
+      - name: Lint
+        run: npm run lint
 
       - name: Run migrations
         run: npx prisma migrate deploy
